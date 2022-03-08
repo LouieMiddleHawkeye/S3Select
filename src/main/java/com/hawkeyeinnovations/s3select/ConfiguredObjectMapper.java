@@ -1,4 +1,4 @@
-package com.hawkeyeinnovations.sport.library;
+package com.hawkeyeinnovations.s3select;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;

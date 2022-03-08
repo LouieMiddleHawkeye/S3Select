@@ -12,9 +12,8 @@ pluginManagement {
     }
     plugins {
         id 'com.hawkeyeinnovations.hawkeye-gradle-plugin' version "${hawkeyeGradlePluginVersion}"
-        id 'org.springframework.boot' version "${springBootVersion}" apply false
     }
 }
 
 // Required as in MultiBranch builds this name is appended with branch/PR name
-rootProject.name = 'JavaLibraryTemplate'
+rootProject.name = 'S3Select'

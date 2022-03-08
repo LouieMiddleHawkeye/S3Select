@@ -1,0 +1,19 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Example S3Select" type="Application" factoryName="Application">
+    <envs>
+      <env name="AWS_PROFILE" value="okta" />
+    </envs>
+    <option name="MAIN_CLASS_NAME" value="com.hawkeyeinnovations.s3select.S3Select" />
+    <module name="S3Select.main" />
+    <option name="PROGRAM_PARAMETERS" value="ParameterLoader -r &quot;eu-west-1&quot; -bn &quot;louiem-hack-day&quot; -op &quot;$PROJECT_DIR$/result&quot; -q &quot;select s._1 from S3Object s&quot;" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="com.hawkeyeinnovations.s3select.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
