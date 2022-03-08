@@ -1,0 +1,59 @@
+import org.springframework.boot.gradle.plugin.SpringBootPlugin
+
+plugins {
+    id 'java-library'
+    id 'java-test-fixtures'
+    id 'com.hawkeyeinnovations.hawkeye-gradle-plugin'
+    id 'org.springframework.boot' apply false
+}
+
+apply plugin: 'io.spring.dependency-management'
+dependencyManagement {
+    imports {
+        mavenBom SpringBootPlugin.BOM_COORDINATES
+    }
+}
+
+sourceCompatibility = JavaVersion.VERSION_14
+targetCompatibility = JavaVersion.VERSION_14
+
+dependencies {
+
+    compileOnly "org.projectlombok:lombok"
+    annotationProcessor "org.projectlombok:lombok"
+    testCompileOnly "org.projectlombok:lombok"
+    testAnnotationProcessor "org.projectlombok:lombok"
+
+    implementation "org.slf4j:slf4j-api"
+
+    implementation "com.fasterxml.jackson.core:jackson-core"
+    implementation "com.fasterxml.jackson.core:jackson-databind"
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310"
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml"
+    implementation "com.github.spotbugs:spotbugs-annotations:${spotbugs.toolVersion.get()}"
+
+    testImplementation "org.junit.jupiter:junit-jupiter"
+    testImplementation "org.hamcrest:hamcrest"
+    testImplementation "org.mockito:mockito-core"
+    testImplementation "org.mockito:mockito-junit-jupiter"
+}
+
+java {
+    withSourcesJar()
+}
+
+publishing {
+    publications {
+        apiJar(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+artifactory {
+    publish {
+        defaults {
+            publications(publishing.publications.names.toArray())
+        }
+    }
+}

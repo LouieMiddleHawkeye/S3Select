@@ -1,0 +1,20 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven {
+            allowInsecureProtocol = true
+            url = "${artifactory_contextUrl}/libs-release-local"
+            credentials {
+                username = "${artifactory_user}"
+                password = "${artifactory_password}"
+            }
+        }
+    }
+    plugins {
+        id 'com.hawkeyeinnovations.hawkeye-gradle-plugin' version "${hawkeyeGradlePluginVersion}"
+        id 'org.springframework.boot' version "${springBootVersion}" apply false
+    }
+}
+
+// Required as in MultiBranch builds this name is appended with branch/PR name
+rootProject.name = 'JavaLibraryTemplate'
