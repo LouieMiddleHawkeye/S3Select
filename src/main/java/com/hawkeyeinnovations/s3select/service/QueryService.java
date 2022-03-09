@@ -32,7 +32,7 @@ public class QueryService {
     public void query(QueryRequest request, FileType fileType) {
         log.info("Starting query");
 
-        String prefix = request.getPrefix();
+        List<String> prefixes = request.getPrefixes();
         String outputPath = request.getOutputPath();
         String query = request.getQuery();
         String bucket = request.getBucketName();
@@ -40,26 +40,36 @@ public class QueryService {
 
         Region region = Region.of(regionString);
 
-        S3AsyncClient s3Client = S3AsyncClient.builder()
-            .region(region)
-            .credentialsProvider(DefaultCredentialsProvider.builder()
-                .profileName("okta")
-                .build())
-            .build();
-        S3Utils s3Utils = new S3Utils(s3Client, bucket, prefix, region);
-
         if (!Files.exists(Paths.get(outputPath))) {
             if (!new File(outputPath).mkdirs()) {
-                log.error("Failed to create output directory");
+                log.error("Failed to create output directory {}", outputPath);
                 return;
             }
         }
 
-        List<String> files = s3Utils.getFilesWithPrefix(prefix);
+        prefixes.forEach(prefix -> {
+            S3AsyncClient s3Client = S3AsyncClient.builder()
+                .region(region)
+                .credentialsProvider(DefaultCredentialsProvider.builder()
+                    .profileName("okta")
+                    .build())
+                .build();
+            S3Utils s3Utils = new S3Utils(s3Client, bucket, prefix, region);
 
-        files.forEach(file -> {
-            Query runnableQuery = new Query(file, query, outputPath, s3Client, fileType, bucket, prefix);
-            CompletableFuture.runAsync(runnableQuery, executorService).whenComplete((r, e) -> log.info("Finished processing file {}", file));
+            String prefixPath = outputPath + File.separator + prefix;
+            if (!Files.exists(Paths.get(prefixPath))) {
+                if (!new File(prefixPath).mkdirs()) {
+                    log.error("Failed to create prefix directory {}", prefixPath);
+                    return;
+                }
+            }
+
+            List<String> files = s3Utils.getFilesWithPrefix(prefix);
+
+            files.forEach(file -> {
+                Query runnableQuery = new Query(file, query, prefixPath, s3Client, fileType, bucket, prefix);
+                CompletableFuture.runAsync(runnableQuery, executorService).whenComplete((r, e) -> log.info("Finished processing file {}", file));
+            });
         });
     }
 }

@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Value;
 
 import javax.validation.constraints.NotEmpty;
+import java.util.List;
 
 @Value
 @Builder
@@ -31,10 +32,10 @@ public class QueryRequest {
 
     @Schema(
         description = "The prefix",
-        example = "messages/2022/1_Major League Baseball/2392_Minute Maid Park/2022-03-07/tiluvyzr/segment.events/",
+        example = "[\"messages/2022/1_Major League Baseball/2392_Minute Maid Park/2022-03-07/tiluvyzr/segment.events/\", \"messages/2022/1_Major League Baseball/2392_Minute Maid Park/2022-03-07/tiluvyzr/segment.summary/\"]",
         required = false
     )
-    private String prefix;
+    private List<String> prefixes;
 
     @Schema(
         description = "Where you want your resulting files to be output",

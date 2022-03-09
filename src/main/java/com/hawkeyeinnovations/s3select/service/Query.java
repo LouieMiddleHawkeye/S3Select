@@ -19,17 +19,17 @@ public class Query implements Runnable {
 
     private final String file;
     private final String query;
-    private final String outputPath;
+    private final String path;
     private final S3AsyncClient s3Client;
     private final FileType fileType;
     private final String bucket;
     private final String prefix;
 
-    public Query(String file, String query, String outputPath, S3AsyncClient s3Client,
+    public Query(String file, String query, String path, S3AsyncClient s3Client,
                  FileType fileType, String bucket, String prefix) {
         this.file = file;
         this.query = query;
-        this.outputPath = outputPath;
+        this.path = path;
         this.s3Client = s3Client;
         this.fileType = fileType;
         this.bucket = bucket;
@@ -44,14 +44,16 @@ public class Query implements Runnable {
             s3Client.selectObjectContent(request, SelectObjectContentResponseHandler.builder()
                     .subscriber(SelectObjectContentResponseHandler.Visitor.builder()
                         .onRecords(event -> {
-                            String outputLocation = outputPath + File.separator + file.replace(prefix, "");
+                            String outputLocation = path + File.separator + file.replace(prefix, "");
                             if (!Files.exists(Path.of(outputLocation))) {
-                                log.info("Writing file " + file.replace(prefix, "") + "...");
+                                log.info("Writing file at location " + outputLocation);
                                 try (OutputStream outputStream = new FileOutputStream(outputLocation)) {
                                     outputStream.write(event.payload().asByteArray());
                                 } catch (IOException e) {
                                     log.error("Failed to write file", e);
                                 }
+                            } else {
+                                log.warn("Not writing to file as already exists at location {}", outputLocation);
                             }
                         })
                         .build())
