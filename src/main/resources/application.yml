@@ -12,5 +12,3 @@ springdoc:
 
 pulsar:
     enabled: false
-
-region: "eu-west-1"

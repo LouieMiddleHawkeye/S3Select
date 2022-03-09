@@ -1,14 +1,13 @@
 package com.hawkeyeinnovations.s3select.controller;
 
 import com.hawkeyeinnovations.s3select.model.FileType;
+import com.hawkeyeinnovations.s3select.model.api.QueryRequest;
 import com.hawkeyeinnovations.s3select.service.QueryService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping(value = "api/v1/query")
@@ -21,12 +20,12 @@ public class QueryController {
         this.queryService = queryService;
     }
 
-    @GetMapping
+    @PostMapping
     @Operation(summary = "Get all files that match query")
-    public ResponseEntity<?> query(@RequestParam(required = false) String key, @RequestParam String outputPath,
-                                   @RequestParam String query, @RequestParam FileType fileType,
-                                   @RequestParam String bucketName)  {
-        queryService.query(key, outputPath, query, bucketName, fileType);
+    @Parameter(name = "fileType", description = "Whether you are querying JSONs or CSVs")
+    public ResponseEntity<?> query(@RequestBody QueryRequest request,
+                                   @RequestParam FileType fileType)  {
+        queryService.query(request, fileType);
         return ResponseEntity.accepted().build();
     }
 }

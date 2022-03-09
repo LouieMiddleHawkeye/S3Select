@@ -2,43 +2,43 @@ package com.hawkeyeinnovations.s3select.service;
 
 import com.hawkeyeinnovations.dataconnections.s3.S3Utils;
 import com.hawkeyeinnovations.s3select.model.FileType;
+import com.hawkeyeinnovations.s3select.model.api.QueryRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.model.*;
 
+import javax.annotation.PreDestroy;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Slf4j
 @Service
 public class QueryService {
 
-//    private final ExecutorService executorService = Executors.newCachedThreadPool();
-    private final Region region;
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
-    public QueryService(@Value("${region}") String region) {
-        this.region = Region.of(region);
+    @PreDestroy
+    public void close() {
+        executorService.shutdownNow();
     }
 
-    public void query(String key, String outputPath, String query, String bucket, FileType fileType) {
-        long start = System.currentTimeMillis();
+    public void query(QueryRequest request, FileType fileType) {
         log.info("Starting query");
 
-        if (key == null) {
-            key = "";
-        }
+        String prefix = request.getPrefix();
+        String outputPath = request.getOutputPath();
+        String query = request.getQuery();
+        String bucket = request.getBucketName();
+        String regionString = request.getRegion();
+
+        Region region = Region.of(regionString);
 
         S3AsyncClient s3Client = S3AsyncClient.builder()
             .region(region)
@@ -46,7 +46,7 @@ public class QueryService {
                 .profileName("okta")
                 .build())
             .build();
-        S3Utils s3Utils = new S3Utils(s3Client, bucket, key, region);
+        S3Utils s3Utils = new S3Utils(s3Client, bucket, prefix, region);
 
         if (!Files.exists(Paths.get(outputPath))) {
             if (!new File(outputPath).mkdirs()) {
@@ -55,79 +55,11 @@ public class QueryService {
             }
         }
 
-        List<String> files = s3Utils.getFilesWithPrefix(key);
-        processFiles(files, key, query, outputPath, s3Client, fileType, bucket);
+        List<String> files = s3Utils.getFilesWithPrefix(prefix);
 
-        log.info("Took " + TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - start) + "s");
-    }
-
-    private void processFiles(List<String> files, String key, String query, String outputPath, S3AsyncClient s3Client,
-                              FileType fileType, String bucket) {
         files.forEach(file -> {
-            SelectObjectContentRequest request = FileType.CSV.equals(fileType) ?
-                generateRequestCSV(bucket, file, query) : generateRequestJSON(bucket, file, query);
-            try {
-                s3Client.selectObjectContent(request, SelectObjectContentResponseHandler.builder()
-                        .subscriber(SelectObjectContentResponseHandler.Visitor.builder()
-                            .onRecords(event -> {
-                                String outputLocation = outputPath + File.separator + file.replace(key, "");
-                                if (!Files.exists(Path.of(outputLocation))) {
-                                    log.info("Writing file " + file.replace(key, "") + "...");
-                                    try (OutputStream outputStream = new FileOutputStream(outputLocation)) {
-                                        outputStream.write(event.payload().asByteArray());
-                                    } catch (IOException e) {
-                                        log.error("Failed to write file", e);
-                                    }
-                                }
-                            })
-                            .build())
-                        .build())
-                    .get();
-            } catch (InterruptedException | ExecutionException e) {
-                log.error("Failed to run query '{}' on file '{}'", query, file, e);
-            }
+            Query runnableQuery = new Query(file, query, outputPath, s3Client, fileType, bucket, prefix);
+            CompletableFuture.runAsync(runnableQuery, executorService).whenComplete((r, e) -> log.info("Finished processing file {}", file));
         });
-    }
-
-    public static SelectObjectContentRequest generateRequestCSV(String bucket, String key, String query) {
-        InputSerialization inputSerialization = InputSerialization.builder()
-            .csv(CSVInput.builder().build())
-            .compressionType(CompressionType.NONE)
-            .build();
-
-        OutputSerialization outputSerialization = OutputSerialization.builder()
-            .csv(CSVOutput.builder().build())
-            .build();
-
-        return SelectObjectContentRequest.builder()
-            .bucket(bucket)
-            .key(key)
-            .expression(query)
-            .expressionType(ExpressionType.SQL)
-            .inputSerialization(inputSerialization)
-            .outputSerialization(outputSerialization)
-            .build();
-    }
-
-    public static SelectObjectContentRequest generateRequestJSON(String bucket, String key, String query) {
-        InputSerialization inputSerialization = InputSerialization.builder()
-            .json(JSONInput.builder()
-                .type(JSONType.DOCUMENT)
-                .build())
-            .compressionType(CompressionType.NONE)
-            .build();
-
-        OutputSerialization outputSerialization = OutputSerialization.builder()
-            .json(JSONOutput.builder().build())
-            .build();
-
-        return SelectObjectContentRequest.builder()
-            .bucket(bucket)
-            .key(key)
-            .expression(query)
-            .expressionType(ExpressionType.SQL)
-            .inputSerialization(inputSerialization)
-            .outputSerialization(outputSerialization)
-            .build();
     }
 }
