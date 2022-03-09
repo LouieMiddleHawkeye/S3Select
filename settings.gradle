@@ -12,6 +12,8 @@ pluginManagement {
     }
     plugins {
         id 'com.hawkeyeinnovations.hawkeye-gradle-plugin' version "${hawkeyeGradlePluginVersion}"
+        id 'io.spring.dependency-management' version "${springDependencyManagementVersion}"
+        id 'org.springframework.boot' version "${springBootVersion}"
     }
 }
 

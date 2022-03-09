@@ -1,0 +1,16 @@
+server:
+    port: 9069
+    servlet:
+        context-path: /S3Select
+
+logging:
+    file:
+        name: ./log/S3Select.log
+
+springdoc:
+    packagesToScan: com.hawkeyeinnovations.s3select.controller
+
+pulsar:
+    enabled: false
+
+region: "eu-west-1"
